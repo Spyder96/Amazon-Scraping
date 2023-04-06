@@ -4,7 +4,27 @@ import pandas as pd
 import numpy as np
 import re
 import datetime
+import psycopg2 as pg
 
+def create_database():
+    conn = pg.connect("host=localhost dbname=postgres user=postgres password=admin")
+    conn.autocommit = True
+    cur = conn.cursor()
+    # Execute the SQL query
+    try:
+        cur.execute("CREATE Database amazon")
+    except pg.errors.DuplicateDatabase:
+        print("Database Amazon Exists")  
+    cur.close()
+    conn.close()
+
+def create_table():
+    conn = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
+    conn.autocommit = True
+    cur = conn.cursor()
+    search="Laptop"
+    
+    
 
 URL="https://www.amazon.in/s?k=laptops&crid=1SOV30PVZQH87&sprefix=laptops%2Caps%2C273&ref=nb_sb_noss_1"
 
@@ -88,6 +108,16 @@ while pages_available:
         final_product_data = [product_name, price, number_of_stars, number_of_ratings, num_answered_questions, feature_list, description, page, current_datetime ]
         
         all_product_data.append(final_product_data)
+        
+        #creating a dataframe of the products
+        df = pd.DataFrame(all_product_data, columns=['Name', 'Price' , 'Stars', 'Number_of_Ratings', 'Number_of_Answered_Questions', 'Amazon_offerings', 'Brief_Description','Page' , 'Date'])
+        
+        
+        
+        
+        conn = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
+        conn.autocommit = True
+        cur = conn.cursor()
         
         #print(f'Product Completed = {product_name}')
     #checking for next page

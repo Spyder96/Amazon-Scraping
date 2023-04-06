@@ -4,15 +4,61 @@ import pandas as pd
 import numpy as np
 import re
 import datetime
+import psycopg2 as pg
+
+def create_database():
+    conn = pg.connect("host=localhost dbname=postgres user=postgres password=admin")
+    conn.autocommit = True
+    cur = conn.cursor()
+    # Execute the SQL query
+    try:
+        cur.execute("CREATE Database amazon")
+    except pg.errors.DuplicateDatabase:
+        print("Database Amazon Exists")  
+    cur.close()
+    conn.close()
+
+
+def create_table(name):
+    connection = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
+    connection.autocommit = True
+    cursor = conn.cursor()
+    
+    try:
+        create_table_query= """
+              Create table %s (
+                  id bigserial Primary Key,
+                  Name varchar not null,
+                  Price int  ,
+                  Stars real ,
+                  Number_of_Ratings int, 
+                  Number_of_Answered_Questions int, 
+                  Amazon_offerings text, 
+                  Brief_Description text,
+                  Page  int ,
+                  Date timestamp
+                  )         
+                       """
+        cursor.execute(create_table_query,(pg.extensions.AsIs(name),))
+    except pg.errors.DuplicateTable:
+        print("table exists")
+    
+
+
 
 
 URL="https://www.amazon.in/s?k=laptops&crid=1SOV30PVZQH87&sprefix=laptops%2Caps%2C273&ref=nb_sb_noss_1"
 
 #request headers
 Headers=({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/111.0' , 'Accept-language':'en-US , en;q=0.5'})
-current_datetime = datetime.datetime.now()
-#first page
+date_time = datetime.datetime.now()
+current_datetime = date_time.strftime("%Y-%m-%d %H:%M:%S")
 
+search="Laptop"
+table_name = search
+create_table(table_name)
+
+#first page
 pages_available = True
 page=1
 while pages_available:
@@ -88,6 +134,16 @@ while pages_available:
         final_product_data = [product_name, price, number_of_stars, number_of_ratings, num_answered_questions, feature_list, description, page, current_datetime ]
         
         all_product_data.append(final_product_data)
+        
+        #creating a dataframe of the products
+        df = pd.DataFrame(all_product_data, columns=['Name', 'Price' , 'Stars', 'Number_of_Ratings', 'Number_of_Answered_Questions', 'Amazon_offerings', 'Brief_Description','Page' , 'Date'])
+        
+        
+        
+        
+        conn = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
+        conn.autocommit = True
+        cur = conn.cursor()
         
         #print(f'Product Completed = {product_name}')
     #checking for next page

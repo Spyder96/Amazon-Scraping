@@ -18,21 +18,47 @@ def create_database():
     cur.close()
     conn.close()
 
-def create_table():
-    conn = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
-    conn.autocommit = True
-    cur = conn.cursor()
-    search="Laptop"
+
+def create_table(name):
+    connection = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
+    connection.autocommit = True
+    cursor = conn.cursor()
     
+    try:
+        create_table_query= """
+              Create table %s (
+                  id bigserial Primary Key,
+                  Name varchar not null,
+                  Price int  ,
+                  Stars real ,
+                  Number_of_Ratings int, 
+                  Number_of_Answered_Questions int, 
+                  Amazon_offerings text, 
+                  Brief_Description text,
+                  Page  int ,
+                  Date timestamp
+                  )         
+                       """
+        cursor.execute(create_table_query,(pg.extensions.AsIs(name),))
+    except pg.errors.DuplicateTable:
+        print("table exists")
     
+
+
+
 
 URL="https://www.amazon.in/s?k=laptops&crid=1SOV30PVZQH87&sprefix=laptops%2Caps%2C273&ref=nb_sb_noss_1"
 
 #request headers
 Headers=({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/111.0' , 'Accept-language':'en-US , en;q=0.5'})
-current_datetime = datetime.datetime.now()
-#first page
+date_time = datetime.datetime.now()
+current_datetime = date_time.strftime("%Y-%m-%d %H:%M:%S")
 
+search="Laptop"
+table_name = search
+create_table(table_name)
+
+#first page
 pages_available = True
 page=1
 while pages_available:

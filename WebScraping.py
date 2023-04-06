@@ -42,7 +42,8 @@ def create_table(name):
         cursor.execute(create_table_query,(pg.extensions.AsIs(name),))
     except pg.errors.DuplicateTable:
         print("table exists")
-    
+    cursor.close()
+    connection.close()
 
 
 

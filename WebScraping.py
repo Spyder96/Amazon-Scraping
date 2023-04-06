@@ -5,58 +5,71 @@ import numpy as np
 import re
 import datetime
 import psycopg2 as pg
+import time
+from psycopg2 import extras  as pgextras
 
-def create_database():
-    conn = pg.connect("host=localhost dbname=postgres user=postgres password=admin")
-    conn.autocommit = True
+def create_database(connection):
+    conn=connection
     cur = conn.cursor()
     # Execute the SQL query
     try:
         cur.execute("CREATE Database amazon")
     except pg.errors.DuplicateDatabase:
-        print("Database Amazon Exists")  
+        print("Database Amazon Exists")
+    except Exception as e:
+        print (f'Error Creating Database: {e}')
+        conn.rollback()
     cur.close()
-    conn.close()
 
 
-def create_table(name):
-    connection = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
-    connection.autocommit = True
+def create_table(connection,name):
+    # 
     cursor = connection.cursor()
-    
     try:
         create_table_query= """
               Create table %s (
                   id bigserial Primary Key,
                   Name varchar not null,
-                  Price int  ,
+                  Price real  ,
                   Stars real ,
                   Number_of_Ratings int, 
                   Number_of_Answered_Questions int, 
                   Amazon_offerings text, 
                   Brief_Description text,
-                  product_link text
+                  product_link text,
                   Page  int ,
                   Date timestamp
                   )         
                        """
         cursor.execute(create_table_query,(pg.extensions.AsIs(name),))
     except pg.errors.DuplicateTable:
-        print("table exists")
+        print("table exists ")
+    except Exception as e:
+        print(f'Error creating table: {e}')
+        
     cursor.close()
-    connection.close()
+    #connection.close()
 
-def table_inserts(name):
-    connection = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
-    connection.autocommit = True
+def table_inserts_df(name,df,connection):
+    tuples = [tuple(x) for x in df.to_numpy()]
+    cols=','.join(list(df.columns))
     cursor = connection.cursor()
-    
+    insert_query = """insert into %s(%s) values %%s  """ % (name,cols)
     try:
+        pgextras.execute_values(cursor, insert_query, tuples)
+        connection.commit()
+    except(Exception, pg.DatabaseError) as error:
+        print("Error inserting values: %s" % error)
+        connection.rollback()
+        cursor.close()
+        return 1
+    print('values inserted to db')
+    cursor.close()
+    return 0
         
-        insert_query = """
-        insert into %s values () 
         
-        """
+        
+        
     
 
 
@@ -65,12 +78,21 @@ URL="https://www.amazon.in/s?k=laptops&crid=1SOV30PVZQH87&sprefix=laptops%2Caps%
 
 #request headers
 Headers=({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/111.0' , 'Accept-language':'en-US , en;q=0.5'})
+#dates
 date_time = datetime.datetime.now()
 current_datetime = date_time.strftime("%Y-%m-%d %H:%M:%S")
 
+#postgres connection
+conn = pg.connect("host=localhost dbname=postgres user=postgres password=admin")
+conn.autocommit = True
+create_database(conn)
+
+#table
+connection = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
+connection.autocommit = True
 search="Laptop"
 table_name = search
-create_table(table_name)
+create_table(connection,table_name)
 
 #first page
 pages_available = True
@@ -99,7 +121,7 @@ while pages_available:
             price_span=prod_soup.find("span",attrs={'class': "a-price aok-align-center reinventPricePriceToPayMargin priceToPay"})
             price_class=price_span.find("span",attrs={'class': "a-price-whole"}).text
             #price
-            price =  int(''.join(re.findall(r'\d+',price_class)))
+            price =  float(''.join(re.findall(r'\d+',price_class)))
         except (AttributeError,ValueError) as e:
             price = 0
 
@@ -148,24 +170,19 @@ while pages_available:
         final_product_data = [product_name, price, number_of_stars, number_of_ratings, num_answered_questions, feature_list, description, product_link, page, current_datetime ]
         
         all_product_data.append(final_product_data)
+        time.sleep(1)
         
         #creating a dataframe of the products
-        df = pd.DataFrame(all_product_data, columns=['Name', 'Price' , 'Stars', 'Number_of_Ratings', 'Number_of_Answered_Questions', 'Amazon_offerings', 'Brief_Description', 'Link', 'Page' , 'Date'])
-        
-        
-        
-        
-        conn = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
-        conn.autocommit = True
-        cur = conn.cursor()
-        
-        #print(f'Product Completed = {product_name}')
+    df = pd.DataFrame(all_product_data, columns=['Name', 'Price' , 'Stars', 'Number_of_Ratings', 'Number_of_Answered_Questions', 'Amazon_offerings', 'Brief_Description', 'product_link', 'Page' , 'Date'])
+     
+    #inserting data
+    table_inserts_df(search, df, connection)
     #checking for next page
     try :
         next_page=soup.find("a",attrs={ 'class': "s-pagination-item s-pagination-next s-pagination-button s-pagination-separator"})
         next_page_link ="https://www.amazon.in"+ next_page.get('href')
         page = page+1
         URL = next_page_link
-        print(f"Page :{page}")
+        print(f"Page : {page} ")
     except:
         pages_available = False

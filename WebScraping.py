@@ -22,7 +22,7 @@ def create_database():
 def create_table(name):
     connection = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
     connection.autocommit = True
-    cursor = conn.cursor()
+    cursor = connection.cursor()
     
     try:
         create_table_query= """
@@ -35,6 +35,7 @@ def create_table(name):
                   Number_of_Answered_Questions int, 
                   Amazon_offerings text, 
                   Brief_Description text,
+                  product_link text
                   Page  int ,
                   Date timestamp
                   )         
@@ -45,6 +46,18 @@ def create_table(name):
     cursor.close()
     connection.close()
 
+def table_inserts(name):
+    connection = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
+    connection.autocommit = True
+    cursor = connection.cursor()
+    
+    try:
+        
+        insert_query = """
+        insert into %s values () 
+        
+        """
+    
 
 
 
@@ -132,12 +145,12 @@ while pages_available:
         except (AttributeError,ValueError) as e:
             feature_list = "Not Available"
 
-        final_product_data = [product_name, price, number_of_stars, number_of_ratings, num_answered_questions, feature_list, description, page, current_datetime ]
+        final_product_data = [product_name, price, number_of_stars, number_of_ratings, num_answered_questions, feature_list, description, product_link, page, current_datetime ]
         
         all_product_data.append(final_product_data)
         
         #creating a dataframe of the products
-        df = pd.DataFrame(all_product_data, columns=['Name', 'Price' , 'Stars', 'Number_of_Ratings', 'Number_of_Answered_Questions', 'Amazon_offerings', 'Brief_Description','Page' , 'Date'])
+        df = pd.DataFrame(all_product_data, columns=['Name', 'Price' , 'Stars', 'Number_of_Ratings', 'Number_of_Answered_Questions', 'Amazon_offerings', 'Brief_Description', 'Link', 'Page' , 'Date'])
         
         
         

@@ -71,11 +71,11 @@ def table_inserts_df(name,df,connection):
         
         
     
+URL_mobile="https://www.amazon.in/s?k=mobiles&crid=1NL7MSE4GFNHC&sprefix=mobile%2Caps%2C459&ref=nb_sb_noss_1"
 
 
-
-URL="https://www.amazon.in/s?k=laptops&crid=1SOV30PVZQH87&sprefix=laptops%2Caps%2C273&ref=nb_sb_noss_1"
-
+URL_laptop="https://www.amazon.in/s?k=laptops&crid=1SOV30PVZQH87&sprefix=laptops%2Caps%2C273&ref=nb_sb_noss_1"
+URL=URL_mobile
 #request headers
 Headers=({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/111.0' , 'Accept-language':'en-US , en;q=0.5'})
 #dates
@@ -90,7 +90,7 @@ create_database(conn)
 #table
 connection = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
 connection.autocommit = True
-search="Laptop"
+search="mobiles"
 table_name = search
 create_table(connection,table_name)
 

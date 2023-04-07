@@ -157,7 +157,7 @@ while pages_available:
         #num of answered questions
         try: 
             answered_questions= (prod_soup.find("a",attrs={ 'class':"a-link-normal askATFLink"}).text.strip()).split()
-            num_answered_questions = answered_questions[0]
+            num_answered_questions = int(''.join(re.findall(r'\d+', answered_questions[0])))
         except (AttributeError,ValueError) as e:
             num_answered_questions = 0
 

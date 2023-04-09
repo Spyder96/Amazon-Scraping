@@ -70,21 +70,29 @@ def table_inserts_df(name,df,connection):
     return 0
 
 def soup_table_data(table):
-    data={}
-    for row in table.find_all('tr'):
-        cells = row.find_all(['th', 'td'])
-        key = cells[0].text.strip()
-        value = cells[1].text.strip()
-        value = value.replace('\u200e', '')
-        # clean the value by removing unnecessary characters
-        value = re.sub('\n', '', value)
-        value = re.sub('\s+', ' ', value)
+    data = {}
+    if table is None:
+        data = {"No Data Available" : "No Data"}
+    else:
+        rows = table.find_all('tr')
+        if rows:
+            for row in rows:
+                cells = row.find_all(['th', 'td'])
+                key = cells[0].text.strip()
+                value = cells[1].text.strip()
+                value = value.replace('\u200e', '')
+                # clean the value by removing unnecessary characters
+                value = re.sub('\n', '', value)
+                value = re.sub('\s+', ' ', value)
+                key = re.sub(' ', '_' , key)
 
-        data[key] = value
+                data[key] = value
+        else:
+            data = {"No Data Available" : "No data"}
     return data
 
 
-def product_details(link,search,page,Headers):
+def product_details(link,search,page,Headers,table):
     date_time = datetime.datetime.now()
     current_datetime = date_time.strftime("%Y-%m-%d %H:%M:%S")
     
@@ -147,22 +155,28 @@ def product_details(link,search,page,Headers):
         features = prod_soup.find_all("a",attrs={ 'class': "a-size-small a-link-normal a-text-normal"})
         #feature_list = ", ".join([feature.text.strip() for feature in features])
         feature_list = json.dumps([feature.text.strip() for feature in features])
-    except (AttributeError,ValueError) as e:
+    except (AttributeError,ValueError):
         feature_list = "Not Available"
         
     #Scraping techincal data
-    tech_table = prod_soup.find('table', attrs={'class':'a-keyvalue prodDetTable'})
-    technical_details= soup_table_data(tech_table)
+    try:
+        tech_table = prod_soup.find('table', attrs={'class':'a-keyvalue prodDetTable'})
+        technical_details= soup_table_data(tech_table)
+    except (AttributeError,ValueError):
+        technical_details = "Not Available"
+    
     
     #Scraping Addional data
-    add_div = prod_soup.find( 'div', attrs={ 'id':"productDetails_db_sections", 'class':"a-section"})
-    add_table = add_div.find( 'table', attrs={ 'id':"productDetails_detailBullets_sections1", \
-                                                  'class':"a-keyvalue prodDetTable"})
-    
-    additional_details= soup_table_data(add_table) 
-    
+    try :
+        add_div = prod_soup.find( 'div', attrs={ 'id':"productDetails_db_sections", 'class':"a-section"})
+        add_table = add_div.find( 'table', attrs={ 'id':"productDetails_detailBullets_sections1", \
+                                                      'class':"a-keyvalue prodDetTable"})
+        additional_details= soup_table_data(add_table) 
+    except:
+        additional_details="Not Available"
+        
     final_product_data = {
-        'ASIN'               : additional_details['ASIN'],
+        #'ASIN'               : additional_details['ASIN'],
         'Name'               : product_name,
         'Price'              : price, 
         'Stars'              : number_of_stars, 
@@ -178,6 +192,7 @@ def product_details(link,search,page,Headers):
         'Search'             : search
         }
     
+    x = table.insert_one(final_product_data)
     return final_product_data
     
     
@@ -195,12 +210,10 @@ def main_postgres_connection(dbname):
         return connection
     
         
-        
-
       
 def Amazon_search(search):
     Headers=({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/111.0' , 'Accept-language':'en-US , en;q=0.5'})
-    
+    dbtable=Mongodb_connection()
     URL= f"https://www.amazon.in/s?k={search}&crid=2C9GZV1PQRGTM&sprefix=abc%2Caps%2C501&ref=nb_sb_noss_2"
     pages_available = True
     page=1
@@ -220,17 +233,19 @@ def Amazon_search(search):
             sublink=link.get('href')
             product_link = "https://www.amazon.in" + sublink
             
-            data = product_details (product_link,search,page,Headers)
+            data = product_details (product_link,search,page,Headers,dbtable)
             
             if data == 0:
                 continue
             else:
-                print(data)
+                all_product_data.append(data)
+                global_prod_list.append(data)
             time.sleep(1)
             
             #creating a dataframe of the products
         #df = pd.DataFrame(all_product_data, columns=['Name', 'Price' , 'Stars', 'Number_of_Ratings', 'Number_of_Answered_Questions', 'Amazon_offerings', 'Brief_Description', 'product_link', 'Page' , 'Date'])
-         
+        #table.insert_many(all_product_data)
+        
         #inserting data
         #table_inserts_df(search, df, connection)
         #checking for next page
@@ -244,21 +259,31 @@ def Amazon_search(search):
             pages_available = False
      
     
-    
+def Mongodb_connection():
+    client = pymongo.MongoClient("mongodb://localhost:27017/")
+    #myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+    mydb = client["Amazondb"]
+    mycol = mydb["Products"]
+    return mycol
+
+        
     
     
 def main():
-    search = input("Enter what you want to search in Amazon")
-    
-    
-    client = pymongo.MongoClient("mongodb://localhost:27017/")
+    search = input("Enter what you want to search in Amazon : ")
+    date_time = datetime.datetime.now()
+    date = date_time.strftime("%Y-%m-%d")
 
 # list the available databases
-    print(client.list_database_names())
-    #Amazon_search(search)
+    try:
+        Amazon_search(search)
+    except:
+        print("Error Occured :")
+    with open(f"{search}_{date}.json","w") as f:
+        json.dump(global_prod_list,f,default=str)
 #request headers
 
-
+global_prod_list=[]
 main()
 # connection=main_postgres_connection("amazon")
 # #Creating table

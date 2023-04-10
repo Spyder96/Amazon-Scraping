@@ -9,6 +9,11 @@ import psycopg2 as pg
 import time
 from psycopg2 import extras  as pgextras
 import pymongo
+from tqdm import tqdm
+import os
+import logging
+
+
 
 def create_database(connection):
     conn=connection
@@ -96,14 +101,21 @@ def product_details(link,search,page,Headers,table):
     date_time = datetime.datetime.now()
     current_datetime = date_time.strftime("%Y-%m-%d %H:%M:%S")
     
-    product_webpage=requests.get(link,headers=Headers)
+    try:
+        product_webpage=requests.get(link,headers=Headers)
+    except Exception as e:
+        logging.error(f"Invalid Product link : {e}")
+        logging.debug(f"Product_link= {link}")
+        return 0
     
     prod_soup = BeautifulSoup(product_webpage.content,"html.parser")
 
     #product name
     try:
         product_name=prod_soup.find("span", attrs={'class': "a-size-large product-title-word-break"}).text.strip()
-    except (AttributeError,ValueError) as e:
+        logging.debug(f"Product Name= {product_name}")
+    except Exception as e:
+        logging.error(f" Product Name Unavailable : {e}")
         return 0
     
     #price
@@ -112,7 +124,9 @@ def product_details(link,search,page,Headers,table):
         price_class=price_span.find("span",attrs={'class': "a-price-whole"}).text
         #price
         price =  float(''.join(re.findall(r'\d+',price_class)))
-    except (AttributeError,ValueError) as e:
+        logging.debug(f"Product Price= {price}")
+    except Exception as e:
+        logging.error(f"Product price Unavailable : {e}")
         price = 0
 
     #description
@@ -120,8 +134,11 @@ def product_details(link,search,page,Headers,table):
         descriptions_list= prod_soup.find("ul",attrs={'class': "a-unordered-list a-vertical a-spacing-mini"}).text.strip().split("    ")
         #description='\n'.join(descriptions_list)
         description= json.dumps(descriptions_list)
-    except:
-        description = "No Description available"
+        logging.debug(f"Product description= {description}")
+        
+    except Exception as e:
+        logging.error(f"Product description Unavailable : {e}")
+        description="No Description"
 
     #rating
     try:
@@ -130,16 +147,19 @@ def product_details(link,search,page,Headers,table):
         #text format eg: 1,765 ratings 
         rating= rating.text.strip()
         number_of_ratings=  int(''.join(re.findall(r'\d+', rating)))
-    except (AttributeError,ValueError) as e:
+        logging.debug(f"Product number_of_ratings= {number_of_ratings}")
+    except Exception as e:
+        logging.error(f"Product ratings Unavailable : {e}")
         number_of_ratings = 0
         
         
     #number of stars
     try:
         stars= prod_soup.find("a",attrs={'class':"a-popover-trigger a-declarative"}).text
-
         number_of_stars= float(stars.strip().split()[0])
-    except (AttributeError,ValueError) as e:
+        logging.debug(f"Product number_of_stars= {number_of_stars}")
+    except Exception as e:
+        logging.error(f"Product Stars Unavailable : {e}")
         number_of_stars = 0
 
 
@@ -147,7 +167,9 @@ def product_details(link,search,page,Headers,table):
     try: 
         answered_questions= (prod_soup.find("a",attrs={ 'class':"a-link-normal askATFLink"}).text.strip()).split()
         num_answered_questions = int(''.join(re.findall(r'\d+', answered_questions[0])))
-    except (AttributeError,ValueError) as e:
+        logging.debug(f"Product num_answered_questions= {num_answered_questions}")
+    except Exception as e:
+        logging.error(f"Product Answered question Unavailable : {e}")
         num_answered_questions = 0
     
     #Amazon highlights
@@ -155,24 +177,30 @@ def product_details(link,search,page,Headers,table):
         features = prod_soup.find_all("a",attrs={ 'class': "a-size-small a-link-normal a-text-normal"})
         #feature_list = ", ".join([feature.text.strip() for feature in features])
         feature_list = json.dumps([feature.text.strip() for feature in features])
-    except (AttributeError,ValueError):
+        logging.debug(f"Product feature_list= {feature_list}")
+    except Exception as e:
+        logging.error(f"Product highlights Unavailable : {e}")
         feature_list = "Not Available"
         
     #Scraping techincal data
     try:
         tech_table = prod_soup.find('table', attrs={'class':'a-keyvalue prodDetTable'})
         technical_details= soup_table_data(tech_table)
-    except (AttributeError,ValueError):
+        logging.debug(f"Product technical_details= {technical_details}")
+    except Exception as e:
+        logging.error(f"Product techincal data Unavailable : {e}")
         technical_details = "Not Available"
     
     
-    #Scraping Addional data
+    #Scraping Addtional data
     try :
         add_div = prod_soup.find( 'div', attrs={ 'id':"productDetails_db_sections", 'class':"a-section"})
         add_table = add_div.find( 'table', attrs={ 'id':"productDetails_detailBullets_sections1", \
                                                       'class':"a-keyvalue prodDetTable"})
-        additional_details= soup_table_data(add_table) 
-    except:
+        additional_details= soup_table_data(add_table)
+        logging.debug(f"Product additional_details= {additional_details}")
+    except Exception as e:
+        logging.error(f"Product Addtional data Unavailable : {e}")
         additional_details="Not Available"
         
     final_product_data = {
@@ -220,7 +248,10 @@ def Amazon_search(search):
     
     while pages_available:
         
-        webpage=requests.get(URL,headers=Headers)
+        try: 
+            webpage=requests.get(URL,headers=Headers)
+        except Exception as e:
+            logging.error(f"{page}-Page Unavailable : {e}") 
         #Creating initial soup file
         soup = BeautifulSoup(webpage.content,"html.parser")
         #searching for product links available in the page
@@ -228,7 +259,7 @@ def Amazon_search(search):
         all_product_data=[]
         #iterating the reference links for the listed products
         
-        for link in links:
+        for link in tqdm(links,desc="Processing items"):
             #dates
             sublink=link.get('href')
             product_link = "https://www.amazon.in" + sublink
@@ -255,7 +286,8 @@ def Amazon_search(search):
             page = page+1
             URL = next_page_link
             print(f"Page : {page} ")
-        except:
+        except Exception as e:
+            logging.error(f"No More Pages Available : {e}")            
             pages_available = False
      
     
@@ -273,15 +305,52 @@ def main():
     search = input("Enter what you want to search in Amazon : ")
     date_time = datetime.datetime.now()
     date = date_time.strftime("%Y-%m-%d")
+    log_dir = 'log'
+    data_dir = 'prod_data'
+    # create the log directory if it doesn't exist
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+        
+    # configure the logging system to write logs to a file
+    log_file_name= f'myapp_{date}.log'
+    log_file = os.path.join(log_dir, log_file_name)
+    logging.basicConfig(filename=log_file, level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
+    
+    #confirguring for data file
+    data_file_name=f"{search}_{date}.json"
+    data_dir_path = os.path.join(data_dir, data_file_name)
+    
+    #checking if file already exists and loading data if available
+    if os.path.isfile(data_dir_path):
+        with open(data_dir_path, "r") as f:
+            # Read the file line by line
+            for line in f:
+                # Strip any whitespace and parse the JSON document
+                data = json.loads(line.strip())
+                # Append the data to the all_data list
+                global_prod_list.append(data)
 
-# list the available databases
     try:
         Amazon_search(search)
-    except:
-        print("Error Occured :")
-    with open(f"{search}_{date}.json","w") as f:
-        json.dump(global_prod_list,f,default=str)
+    except Exception as e:
+        logging.error(str(e))
+        print(f"Error Occured : {e}")
+        
+    with open(data_dir_path,"a") as f:
+        if len(global_prod_list) < 2:
+            print("No Data")
+        else:
+            json.dump( global_prod_list,f,default=str)
 #request headers
+
+
+
+
+
+    
+
 
 global_prod_list=[]
 main()

@@ -13,7 +13,18 @@ from tqdm import tqdm
 import os
 import logging
 
-
+def main_postgres_connection(dbname):
+    
+    if dbname == "postgres":  #postgres connection
+        connection = pg.connect("host=localhost dbname=postgres user=postgres password=admin")
+        connection.autocommit = True
+        create_database(connection)
+        return 0
+    else:
+        #connecting to Amazon database
+        connection = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
+        connection.autocommit = True
+        return connection
 
 def create_database(connection):
     conn=connection
@@ -27,7 +38,6 @@ def create_database(connection):
         print (f'Error Creating Database: {e}')
         conn.rollback()
     cur.close()
-
 
 def create_table(connection,name):
     # 
@@ -73,6 +83,14 @@ def table_inserts_df(name,df,connection):
     print('values inserted to db')
     cursor.close()
     return 0
+
+def Mongodb_connection():
+    client = pymongo.MongoClient("mongodb://localhost:27017/")
+    #myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+    mydb = client["Amazondb"]
+    mycol = mydb["Products"]
+    return mycol
+
 
 def soup_table_data(table):
     data = {}
@@ -222,22 +240,6 @@ def product_details(link,search,page,Headers,table):
     
     x = table.insert_one(final_product_data)
     return final_product_data
-    
-    
-def main_postgres_connection(dbname):
-    
-    if dbname == "postgres":  #postgres connection
-        connection = pg.connect("host=localhost dbname=postgres user=postgres password=admin")
-        connection.autocommit = True
-        create_database(connection)
-        return 0
-    else:
-        #connecting to Amazon database
-        connection = pg.connect("host=localhost dbname=amazon user=postgres password=admin")
-        connection.autocommit = True
-        return connection
-    
-        
       
 def Amazon_search(search):
     Headers=({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/111.0' , 'Accept-language':'en-US , en;q=0.5'})
@@ -291,16 +293,6 @@ def Amazon_search(search):
             pages_available = False
      
     
-def Mongodb_connection():
-    client = pymongo.MongoClient("mongodb://localhost:27017/")
-    #myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-    mydb = client["Amazondb"]
-    mycol = mydb["Products"]
-    return mycol
-
-        
-    
-    
 def main():
     search = input("Enter what you want to search in Amazon : ")
     date_time = datetime.datetime.now()
@@ -316,7 +308,8 @@ def main():
     # configure the logging system to write logs to a file
     log_file_name= f'myapp_{date}.log'
     log_file = os.path.join(log_dir, log_file_name)
-    logging.basicConfig(filename=log_file, level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
+    logging.basicConfig(filename=log_file, level=logging.DEBUG, \
+                        format='%(asctime)s %(levelname)s: %(message)s')
     
     #confirguring for data file
     data_file_name=f"{search}_{date}.json"
@@ -329,7 +322,7 @@ def main():
             for line in f:
                 # Strip any whitespace and parse the JSON document
                 data = json.loads(line.strip())
-                # Append the data to the all_data list
+                # Append the data to the global_prod_list list
                 global_prod_list.append(data)
 
     try:
@@ -344,12 +337,7 @@ def main():
         else:
             json.dump( global_prod_list,f,default=str)
 #request headers
-
-
-
-
-
-    
+   
 
 
 global_prod_list=[]

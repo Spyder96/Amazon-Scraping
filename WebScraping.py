@@ -268,6 +268,7 @@ def Amazon_search(search):
             
             data = product_details (product_link,search,page,Headers,dbtable)
             
+
             if data == 0 :
                 continue
             else:
@@ -291,8 +292,10 @@ def Amazon_search(search):
         except Exception as e:
             logging.error(f"No More Pages Available : {e}")            
             pages_available = False
+
         if page>10:
             pages_available = False
+
      
     
 def main():
@@ -329,6 +332,7 @@ def main():
 
     Amazon_search(search)
     
+
     with open(data_dir_path,"a") as f:
         if len(global_prod_list) < 2:
             print("No Data")
@@ -336,10 +340,15 @@ def main():
             json.dump( global_prod_list,f,default=str)
 #request headers
    
+   
 if __name__ == "__main__" :
         
     global_prod_list=[]
     main()
+
+
+
+
 # connection=main_postgres_connection("amazon")
 # #Creating table
 # table_name = search

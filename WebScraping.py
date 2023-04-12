@@ -84,6 +84,7 @@ def table_inserts_df(name,df,connection):
     cursor.close()
     return 0
 
+
 def Mongodb_connection():
     client = pymongo.MongoClient("mongodb://localhost:27017/")
     #myclient = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -161,7 +162,6 @@ def product_details(link,search,page,Headers,table):
     #rating
     try:
         rating= prod_soup.find("a",attrs={ 'id':"acrCustomerReviewLink" ,'class':"a-link-normal"})
-
         #text format eg: 1,765 ratings 
         rating= rating.text.strip()
         number_of_ratings=  int(''.join(re.findall(r'\d+', rating)))
@@ -325,12 +325,7 @@ def main():
                 # Append the data to the global_prod_list list
                 global_prod_list.append(data)
 
-    try:
-        Amazon_search(search)
-    except Exception as e:
-        logging.error(str(e))
-        print(f"Error Occured : {e}")
-        
+
     with open(data_dir_path,"a") as f:
         if len(global_prod_list) < 2:
             print("No Data")
@@ -338,6 +333,8 @@ def main():
             json.dump( global_prod_list,f,default=str)
 #request headers
    
+
+
 
 
 global_prod_list=[]

@@ -116,7 +116,7 @@ def soup_table_data(table):
     return data
 
 
-def product_details(link,search,page,Headers,table,sale):
+def product_details(link,search,page,Headers,table):
     date_time = datetime.datetime.now()
     current_datetime = date_time.strftime("%Y-%m-%d %H:%M:%S")
     
@@ -235,14 +235,13 @@ def product_details(link,search,page,Headers,table,sale):
         'Link'               : link,
         'Page'               : page,
         'Date'               : current_datetime,
-        'Search'             : search,
-        "Sale"               : sale
+        'Search'             : search
         }
     
     x = table.insert_one(final_product_data)
     return final_product_data
       
-def Amazon_search(search , sale=None ):
+def Amazon_search(search):
     Headers=({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/111.0' , 'Accept-language':'en-US , en;q=0.5'})
     dbtable=Mongodb_connection()
     URL= f"https://www.amazon.in/s?k={search}&crid=2C9GZV1PQRGTM&sprefix=abc%2Caps%2C501&ref=nb_sb_noss_2"
@@ -267,7 +266,7 @@ def Amazon_search(search , sale=None ):
             sublink=link.get('href')
             product_link = "https://www.amazon.in" + sublink
             
-            data = product_details (product_link,search,page,Headers,dbtable,sale)
+            data = product_details (product_link,search,page,Headers,dbtable)
             
 
             if data == 0 :
@@ -330,18 +329,8 @@ def main():
                 data = json.loads(line.strip())
                 # Append the data to the global_prod_list list
                 global_prod_list.append(data)
-  
-  #checking for sale
-    sale = input ("Is there any Sale currently ? \n Press Y for yes ")
-    sale = str(sale).lower() 
-    # """ while sale != 'y' or sale !='n':
-    #     sale = input ("\n Press Y or N ")
-    #     sale = str(sale).lower() """
-    if sale == 'y':
-        salename = input ("Name of Sale")
-        Amazon_search(search, salename)
-    else:
-        Amazon_search(search)
+
+    Amazon_search(search)
     
 
     with open(data_dir_path,"a") as f:

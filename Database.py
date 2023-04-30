@@ -8,7 +8,7 @@ import psycopg2 as pg
 from psycopg2 import extras  as pgextras
 import pymongo
 
-class postgres_database:
+class PostgresDB:
     
     def __init__(self,user,password,dbname='postgres',host='localhost'):
         self.name = dbname
@@ -20,10 +20,10 @@ class postgres_database:
     
     def connect(self):
         self.connection = pg.connect(
-                dbname  = self.name,
-                user    = self.user, 
-                password= self.password,
-                host    = self.host
+                dbname      = self.name,
+                user        = self.user, 
+                password    = self.password,
+                host        = self.host
             )
         self.connection.autocommit = True
         
@@ -32,7 +32,7 @@ class postgres_database:
             cursor = self.connection.cursor()
             # Execute the SQL query
             try:
-                cursor.execute(f"CREATE Database {name}")
+                cursor.execute("CREATE Database %s",(name,))
             except pg.errors.DuplicateDatabase:
                 print(f"Database {name} Exists")
             except Exception as e:
@@ -41,15 +41,14 @@ class postgres_database:
             cursor.close()
         else:
             print("Need to connect to postgres database for this method")
-            
-
 
     def create_table(self,table_name,columns):
         # 
         cursor = self.connection.cursor()
         try:
             create_table_query= " CREATE TABLE %s ( %s )   "
-            cursor.execute(create_table_query,(pg.extensions.AsIs(table_name),pg.extensions.AsIs(','.join(columns))))
+            cursor.execute(create_table_query,\
+                           (pg.extensions.AsIs(table_name),pg.extensions.AsIs(','.join(columns))))
             print(f"{table_name} created")
         except pg.errors.DuplicateTable:
             print("table exists")
@@ -57,8 +56,7 @@ class postgres_database:
             print(f'Error creating table: {e}')
             
         cursor.close()
-        #connection.close()
-#
+        
     
     def table_inserts_df(self,name,df):
             tuples = [tuple(x) for x in df.to_numpy()]
@@ -78,7 +76,7 @@ class postgres_database:
             return 0
  
 
-class mongodb:
+class MongoDB:
     
     def __init__(self,db=None,cols=None,host="localhost",port=27017):
         self.db = db
@@ -87,7 +85,7 @@ class mongodb:
         self.host= host
         self.port = port
         
-    def Mongodb_connection(self,dbname="Amazondb",collection="Products"):
+    def connection(self,dbname="Amazondb",collection="Products"):
         self.client = pymongo.MongoClient(f"mongodb://{self.host}:{self.port}/")
         self.db = self.client[f"{dbname}"]
         self.cols = self.db[f"{collection}"]

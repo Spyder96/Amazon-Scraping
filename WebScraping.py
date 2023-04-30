@@ -267,7 +267,7 @@ def Amazon_search(search , sale=None ):
             sublink=link.get('href')
             product_link = "https://www.amazon.in" + sublink
             
-            data = product_details (product_link,search,page,Headers,dbtable,sale)
+            data = product_details (product_link,search,page,Headers,dbtable)
             
 
             if data == 0 :

@@ -75,20 +75,20 @@ class PostgresDB:
             cursor.close()
             return 0
  
-
+#Creating MongoDb connection
 class MongoDB:
     
     def __init__(self,db=None,cols=None,host="localhost",port=27017):
-        self.db = db
-        self.cols = cols
+        self.database = db
+        self.collection = cols
         self.client = None
         self.host= host
         self.port = port
         
     def connection(self,dbname="Amazondb",collection="Products"):
         self.client = pymongo.MongoClient(f"mongodb://{self.host}:{self.port}/")
-        self.db = self.client[f"{dbname}"]
-        self.cols = self.db[f"{collection}"]
+        self.database = self.client[f"{dbname}"]
+        self.collection = self.database[f"{collection}"]
         
         #return mycol
 

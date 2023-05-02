@@ -12,6 +12,7 @@ import pymongo
 from tqdm import tqdm
 import os
 import logging
+from Database import MongoDB
 
 def main_postgres_connection(dbname):
     
@@ -244,7 +245,13 @@ def product_details(link,search,page,Headers,table,sale):
       
 def Amazon_search(search , sale=None ):
     Headers=({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/111.0' , 'Accept-language':'en-US , en;q=0.5'})
-    dbtable=Mongodb_connection()
+    
+    #Creating Mongo Connection
+    mongo = MongoDB()
+    mongo.connection("Amazondb","Products")
+    dbtable = mongo.collection
+    
+    
     URL= f"https://www.amazon.in/s?k={search}&crid=2C9GZV1PQRGTM&sprefix=abc%2Caps%2C501&ref=nb_sb_noss_2"
     pages_available = True
     page=1
@@ -263,11 +270,11 @@ def Amazon_search(search , sale=None ):
         #iterating the reference links for the listed products
         
         for link in tqdm(links,desc="Processing items"):
-            #dates
+            #datessmart
             sublink=link.get('href')
             product_link = "https://www.amazon.in" + sublink
             
-            data = product_details (product_link,search,page,Headers,dbtable)
+            data = product_details (product_link,search,page,Headers,dbtable,sale)
             
 
             if data == 0 :

@@ -1,0 +1,30 @@
+show dbs
+show collections
+db.Products.find_one()
+db.Products.find_one
+use Amazondb
+show dbs
+list dbs
+db.Products.countDocuments()
+db.Products.countDocumnets()
+db.Products.countDocumnets
+db.Products.countDocumnets()
+db.Products.count()
+show collections
+use Amazondb
+show dbs
+db.Products.find()
+db.Products.find_one()
+db.Products.list_one()
+show collections
+show collection
+db.Products.list_one()
+use Amazondb
+db.Products.list_one()
+show dbs
+db.Products.list_one()
+show collections
+use Amazondb
+show dbs
+'dbs
+'

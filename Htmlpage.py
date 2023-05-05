@@ -14,11 +14,12 @@ class HtmlPage:
         self.link = link
         self.headers = headers or self.default_Headers
         try:
-            self.webpage = requests.get( self.link, headers = self.headers )
+            webpage = requests.get( self.link, headers = self.headers )
+            logging.debug(f"Requests Success")
         except Exception as e:
-            logging.error(f"{self.link}- Unavailable : {e}") 
+            logging.error(f"Link Unavailable : {e} :: {self.link}") 
         
-        self.soup = BeautifulSoup( self.webpage.content, "html.parser")
+        self.soup = BeautifulSoup( webpage.content, "html.parser")
     
     def soup_table_data(self,table):
         data = {}
@@ -45,12 +46,9 @@ class HtmlPage:
 
 class AmazonPage( HtmlPage ):
     
-    def __init__(self, search, page, sale=None):
-        baselink = "https://www.amazon.in/s?k="
-        self.search_link = baselink + search
-        super().__init__(self.search_link)
-        self.page = page
-        self.sale = sale
+    def __init__(self, link ):
+        self.link = link
+        super().__init__(self.link)
         self.product_links = [] 
 
 # To extract the Product links from the Page
